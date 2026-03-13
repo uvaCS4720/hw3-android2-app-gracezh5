@@ -12,7 +12,10 @@ import edu.nd.pmcburne.hwapp.one.viewmodel.GameViewModel
 import java.time.LocalDate
 
 @Composable
-fun GameScreen(viewModel: GameViewModel = viewModel()) {
+fun GameScreen(
+    modifier: Modifier = Modifier,
+    viewModel: GameViewModel = viewModel()
+) {
 
     val gamesResponse by viewModel.games.collectAsState()
     val loading by viewModel.isLoading.collectAsState()
@@ -30,7 +33,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
