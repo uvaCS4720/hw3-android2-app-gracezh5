@@ -1,11 +1,13 @@
 package edu.nd.pmcburne.hwapp.one.ui
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.nd.pmcburne.hwapp.one.viewmodel.GameViewModel
@@ -24,12 +26,12 @@ fun GameScreen(
     var gender by remember { mutableStateOf("men") }
 
     val today = LocalDate.now()
-    val year = today.year
-    val month = today.monthValue
-    val day = today.dayOfMonth
+    var selectedDate by remember { mutableStateOf(today) }
+
+    val context = LocalContext.current
 
     LaunchedEffect(gender) {
-        viewModel.fetchGames(gender, year, month, day)
+        viewModel.fetchGames(gender, selectedDate.year, selectedDate.monthValue, selectedDate.dayOfMonth)
     }
 
     Column(
@@ -62,8 +64,36 @@ fun GameScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // Date Picker Button
         Button(
-            onClick = { viewModel.fetchGames(gender, year, month, day) }
+            onClick = {
+                val datePicker = DatePickerDialog(
+                    context,
+                    { _, year, month, dayOfMonth ->
+                        selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
+                        viewModel.fetchGames(gender, year, month + 1, dayOfMonth)
+                    },
+                    selectedDate.year,
+                    selectedDate.monthValue - 1,
+                    selectedDate.dayOfMonth
+                )
+                datePicker.show()
+            }
+        ) {
+            Text(text = "Select Date: $selectedDate")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = {
+                viewModel.fetchGames(
+                    gender,
+                    selectedDate.year,
+                    selectedDate.monthValue,
+                    selectedDate.dayOfMonth
+                )
+            }
         ) {
             Text("Refresh")
         }
