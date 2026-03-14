@@ -10,16 +10,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import edu.nd.pmcburne.hwapp.one.data.DatabaseProvider
+import edu.nd.pmcburne.hwapp.one.data.GameRepository
 import edu.nd.pmcburne.hwapp.one.viewmodel.GameViewModel
+import edu.nd.pmcburne.hwapp.one.viewmodel.GameViewModelFactory
 import java.time.LocalDate
 
 @Composable
 fun GameScreen(
-    modifier: Modifier = Modifier,
-    viewModel: GameViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
 
-    val gamesResponse by viewModel.games.collectAsState()
+    val context = LocalContext.current
+
+    // Create database → DAO → repository
+    val db = remember {
+        DatabaseProvider.getDatabase(context)
+    }
+
+    val repository = remember {
+        GameRepository(db.gameDao())
+    }
+
+    val viewModel: GameViewModel = viewModel(
+        factory = GameViewModelFactory(repository)
+    )
+
+    val games by viewModel.games.collectAsState()
     val loading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
 
@@ -28,10 +45,13 @@ fun GameScreen(
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
 
-    val context = LocalContext.current
-
     LaunchedEffect(gender) {
-        viewModel.fetchGames(gender, selectedDate.year, selectedDate.monthValue, selectedDate.dayOfMonth)
+        viewModel.fetchGames(
+            gender,
+            selectedDate.year,
+            selectedDate.monthValue,
+            selectedDate.dayOfMonth
+        )
     }
 
     Column(
@@ -48,6 +68,7 @@ fun GameScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Row {
+
             Button(
                 onClick = { gender = "men" },
                 modifier = Modifier.padding(end = 8.dp)
@@ -64,14 +85,19 @@ fun GameScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Date Picker Button
         Button(
             onClick = {
                 val datePicker = DatePickerDialog(
                     context,
                     { _, year, month, dayOfMonth ->
                         selectedDate = LocalDate.of(year, month + 1, dayOfMonth)
-                        viewModel.fetchGames(gender, year, month + 1, dayOfMonth)
+
+                        viewModel.fetchGames(
+                            gender,
+                            year,
+                            month + 1,
+                            dayOfMonth
+                        )
                     },
                     selectedDate.year,
                     selectedDate.monthValue - 1,
@@ -108,56 +134,50 @@ fun GameScreen(
             Text(text = "Error: $it")
         }
 
-        gamesResponse?.let { response ->
+        LazyColumn {
 
-            LazyColumn {
+            items(games) { game ->
 
-                items(response.games) { wrapper ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                ) {
 
-                    val game = wrapper.game
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
+                    Column(
+                        modifier = Modifier.padding(12.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
 
+                        Text(
+                            text = "${game.awayTeam} (Away) vs ${game.homeTeam} (Home)",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        if (game.gameState == "pre") {
+                            Text("Start Time: ${game.startTime}")
+                        } else {
+                            Text("Score: ${game.awayScore} - ${game.homeScore}")
+                        }
+
+                        val statusText = when (game.gameState.lowercase()) {
+                            "pre" -> "Upcoming"
+                            "live" -> "In Progress"
+                            "final" -> "Final"
+                            else -> game.gameState
+                        }
+
+                        Text("Status: $statusText")
+
+                        if (game.gameState.lowercase() == "live") {
                             Text(
-                                text = "${game.away.names.short} (Away) vs ${game.home.names.short} (Home)",
-                                style = MaterialTheme.typography.titleMedium
+                                "Period: ${game.currentPeriod}, Time Remaining: ${game.contestClock}"
                             )
+                        }
 
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            if (game.gameState == "pre") {
-                                Text(text = "Start Time: ${game.startTime}")
-                            } else {
-                                Text(text = "Score: ${game.away.score} - ${game.home.score}")
-                            }
-
-                            val statusText = when (game.gameState.lowercase()) {
-                                "pre" -> "Upcoming"
-                                "final" -> "Final"
-                                "live" -> "Live"
-                                else -> game.gameState
-                            }
-                            Text(text = "Status: $statusText")
-
-                            if (game.gameState == "live") {
-                                Text(text = "Period: ${game.currentPeriod}, Time Remaining: ${game.contestClock}")
-                            }
-
-
-                            if (game.gameState == "final") {
-                                val winner =
-                                    if (game.home.winner) game.home.names.short
-                                    else game.away.names.short
-
-                                Text("Winner: $winner")
-                            }
+                        if (game.gameState.lowercase() == "final") {
+                            Text("Winner: ${game.winner}")
                         }
                     }
                 }
