@@ -18,6 +18,7 @@ import java.time.LocalDate
 
 @Composable
 fun GameScreen(
+    viewModel: GameViewModel,
     modifier: Modifier = Modifier
 ) {
 
@@ -45,7 +46,7 @@ fun GameScreen(
     val today = LocalDate.now()
     var selectedDate by remember { mutableStateOf(today) }
 
-    LaunchedEffect(gender) {
+    LaunchedEffect(gender, selectedDate) {
         viewModel.fetchGames(
             gender,
             selectedDate.year,
