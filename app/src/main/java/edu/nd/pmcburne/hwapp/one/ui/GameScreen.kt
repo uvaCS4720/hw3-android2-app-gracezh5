@@ -126,19 +126,30 @@ fun GameScreen(
                         ) {
 
                             Text(
-                                text = "${game.away.names.short} vs ${game.home.names.short}",
+                                text = "${game.away.names.short} (Away) vs ${game.home.names.short} (Home)",
                                 style = MaterialTheme.typography.titleMedium
                             )
 
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            Text(
-                                text = "Score: ${game.away.score} - ${game.home.score}"
-                            )
+                            if (game.gameState == "pre") {
+                                Text(text = "Start Time: ${game.startTime}")
+                            } else {
+                                Text(text = "Score: ${game.away.score} - ${game.home.score}")
+                            }
 
-                            Text(
-                                text = "Status: ${game.gameState}"
-                            )
+                            val statusText = when (game.gameState.lowercase()) {
+                                "pre" -> "Upcoming"
+                                "final" -> "Final"
+                                "live" -> "Live"
+                                else -> game.gameState
+                            }
+                            Text(text = "Status: $statusText")
+
+                            if (game.gameState == "live") {
+                                Text(text = "Period: ${game.currentPeriod}, Time Remaining: ${game.contestClock}")
+                            }
+
 
                             if (game.gameState == "final") {
                                 val winner =

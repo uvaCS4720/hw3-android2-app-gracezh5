@@ -18,7 +18,9 @@ data class Game(
     val startTime: String,
     val startDate: String,
     val gameState: String,
-    val finalMessage: String
+    val finalMessage: String,
+    val currentPeriod: String,
+    val contestClock: String
 )
 
 data class Team(
